@@ -53,8 +53,8 @@ model = BertForMaskedLM.from_pretrained("bert-base-uncased")
 training_args = TrainingArguments(
     output_dir='./results',          # output directory
     num_train_epochs=3,              # total number of training epochs
-    per_device_train_batch_size=16,  # batch size per device during training
-    per_device_eval_batch_size=64,   # batch size for evaluation
+    per_device_train_batch_size=8,  # batch size per device during training
+    per_device_eval_batch_size=32,   # batch size for evaluation
     warmup_steps=500,                # number of warmup steps for learning rate scheduler
     weight_decay=0.01,               # strength of weight decay
     logging_dir='./logs',            # directory for storing logs
@@ -69,3 +69,11 @@ trainer = Trainer(
 )
 
 trainer.train()
+
+
+
+# Save model
+model.save_pretrained("path_to_directory_to_save")
+
+# Save tokenizer
+tokenizer.save_pretrained("path_to_directory_to_save")
