@@ -4,6 +4,13 @@ Created on Tue Aug  1 12:39:04 2023
 
 @author: Saeed
 """
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Aug  1 11:18:26 2023
+
+@author: Saeed
+"""
+
 import torch
 from torch.utils.data import Dataset
 
@@ -18,24 +25,25 @@ class TextDataset(Dataset):
 
     def __getitem__(self, idx):
         text = self.texts[idx]
-        encoding = self.tokenizer(text, truncation=True, max_length=self.max_length, padding='max_length')
+        encoding = self.tokenizer.encode_plus(text, truncation=True, max_length=self.max_length, padding='max_length', return_tensors='pt')
         # We are going to predict masked tokens
-        encoding["labels"] = encoding["input_ids"].clone()
+        encoding["labels"] = encoding["input_ids"].detach().squeeze().clone()
         # Create mask
-        rand = torch.rand(encoding["input_ids"].shape)
-        mask_arr = (rand < 0.15) * (encoding["input_ids"] != 101) * (encoding["input_ids"] != 102) * (encoding["input_ids"] != 0)
-        selection = torch.flatten(mask_arr.nonzero()).tolist()
-        encoding["input_ids"][selection] = 103  # 103 is the token id for [MASK]
-        return encoding
+        rand = torch.rand(encoding["input_ids"].squeeze().shape)
+        mask_arr = (rand < 0.15) * (encoding["input_ids"].squeeze() != 101) * (encoding["input_ids"].squeeze() != 102) * (encoding["input_ids"].squeeze() != 0)
+        
+        encoding["input_ids"].squeeze()[mask_arr] = 103  # '103' is the token id for '[MASK]' in BERT vocab
+        return {key: tensor.squeeze() for key, tensor in encoding.items()}
 
 
 
 
 
 from transformers import BertTokenizer, BertForMaskedLM, Trainer, TrainingArguments
-
+import pandas as pd
+CL=pd.read_csv("/content/gdrive/My Drive/Colab Notebooks/data/CSA/CL.csv")
 # Assuming documents is your list of document strings
-documents = ["Document 1...", "Document 2...", "Document 3..."]
+documents = list(CL["Data"])
 
 tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 dataset = TextDataset(documents, tokenizer)
@@ -55,7 +63,7 @@ training_args = TrainingArguments(
 )
 
 trainer = Trainer(
-    model=model,                         # the instantiated 🤗 Transformers model to be trained
+    model=model,                         # the instantiated Transformer model to be trained
     args=training_args,                  # training arguments, defined above
     train_dataset=dataset,               # training dataset
 )
